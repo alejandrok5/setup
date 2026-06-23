@@ -247,16 +247,31 @@ log "Theming the console stack with apply-theme.sh ($FLAVOR)"
 "$SETUP_DIR/apply-theme.sh" "$FLAVOR" || warn "apply-theme.sh reported an issue — see output above"
 
 # ==========================================================================
-# 12. Default shell -> zsh
+# 12. Default login shell -> zsh
 # ==========================================================================
-log "Setting zsh as the default shell"
+# Do this as ROOT (via the sudo we already have) so it's NON-interactive. A plain
+# `chsh` run as you prompts for your password and gets skipped on an unattended
+# run, leaving /etc/passwd on /bin/bash — so every new shell starts bash and you'd
+# have to `exec zsh` by hand. Run as root, chsh/usermod change the shell silently.
+log "Setting zsh as the default login shell"
 ZSH_BIN="$(command -v zsh || true)"
-if [ -n "$ZSH_BIN" ] && [ "${SHELL:-}" != "$ZSH_BIN" ]; then
-  chsh -s "$ZSH_BIN" 2>/dev/null \
-    && info "default shell set to $ZSH_BIN (log out/in to take effect)" \
-    || warn "chsh failed — run it yourself: chsh -s $ZSH_BIN"
+TARGET_USER="$(id -un)"
+CURRENT_SHELL="$(getent passwd "$TARGET_USER" 2>/dev/null | cut -d: -f7)"
+if [ -z "$ZSH_BIN" ]; then
+  warn "zsh not found — skipping the default-shell change"
+elif [ "$CURRENT_SHELL" = "$ZSH_BIN" ]; then
+  info "zsh is already your login shell"
 else
-  info "zsh already the default shell (or zsh not installed)"
+  # Make sure zsh is a permitted login shell, then set it.
+  grep -qxF "$ZSH_BIN" /etc/shells 2>/dev/null \
+    || echo "$ZSH_BIN" | $SUDO tee -a /etc/shells >/dev/null 2>&1 || true
+  if { [ -n "$SUDO" ] || [ "$(id -u)" -eq 0 ]; } \
+     && { $SUDO chsh -s "$ZSH_BIN" "$TARGET_USER" 2>/dev/null \
+          || $SUDO usermod -s "$ZSH_BIN" "$TARGET_USER" 2>/dev/null; }; then
+    info "login shell set to $ZSH_BIN (log out/in to take effect)"
+  else
+    warn "could not set it automatically — run yourself:  chsh -s $ZSH_BIN"
+  fi
 fi
 
 cat <<EOF
