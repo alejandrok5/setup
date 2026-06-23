@@ -1,4 +1,4 @@
-# setup Debian +i3
+# setup Debian + i3
 
 Personal desktop setup for **Debian + i3 (Xorg)** — a one-command bootstrap of the
 whole environment (window manager, terminal, shell, editor, bars, themes) onto a
