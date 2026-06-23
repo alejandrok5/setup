@@ -7,23 +7,26 @@
 # Headless sibling of the desktop install.sh: no i3/X11/GUI — just the themed
 # terminal/TUI tools that work over SSH. In order:
 #   1.  apt packages          (zsh, tmux, btop, build/dev deps — needs sudo)
-#   2.  Meslo Nerd Font        (OPTIONAL, wget — only matters for a LOCAL console)
-#   3.  oh-my-zsh
-#   4.  starship               (prompt -> ~/.local/bin)
-#   5.  mise + ruby            (.zshrc activates mise; ruby for ruby-lsp)
-#   6.  Neovim                 (recent build -> ~/.local; Ubuntu's apt nvim is too old for LazyVim)
-#   7.  yazi + ya              (file manager -> ~/.local/bin; no image preview over SSH)
-#   8.  lazygit                (-> ~/.local/bin)
-#   9.  lazydocker             (-> ~/.local/bin)
-#   10. Docker Engine          (get.docker.com + adds you to the docker group — sudo)
-#   11. place dotfiles         (~/.zshrc ~/.profile ~/.gitconfig)
-#   12. apply-theme.sh         (themes zsh/starship/btop/yazi/lazygit/lazydocker/nvim + seeds tmux)
-#   13. default shell -> zsh   (chsh)
+#   2.  oh-my-zsh
+#   3.  starship               (prompt -> ~/.local/bin)
+#   4.  mise + ruby            (.zshrc activates mise; ruby for ruby-lsp)
+#   5.  Neovim                 (recent build -> ~/.local; Ubuntu's apt nvim is too old for LazyVim)
+#   6.  yazi + ya              (file manager -> ~/.local/bin; no image preview over SSH)
+#   7.  lazygit                (-> ~/.local/bin)
+#   8.  lazydocker             (-> ~/.local/bin)
+#   9.  Docker Engine          (get.docker.com + adds you to the docker group — sudo)
+#   10. place dotfiles         (~/.zshrc ~/.profile ~/.gitconfig)
+#   11. apply-theme.sh         (themes zsh/starship/btop/yazi/lazygit/lazydocker/nvim + seeds tmux)
+#   12. default shell -> zsh   (chsh)
+#
+# No Nerd Font is installed here: on a headless box the raw TTY uses kernel console
+# fonts, and over SSH the glyphs are rendered by YOUR client terminal's font — so
+# set your local terminal to a Nerd Font (e.g. MesloLGS Nerd Font Mono) instead.
 #
 # Large files are fetched with wget; the official install one-liners (oh-my-zsh,
-# starship, mise, Docker) use their documented curl|sh form. Idempotent and
-# safe to re-run; existing files are backed up to .bak; optional/network steps
-# are non-fatal. Toggle steps with: INSTALL_FONTS=0  INSTALL_DOCKER=0  ./install-server.sh
+# starship, mise, Docker) use their documented curl|sh form. Idempotent and safe
+# to re-run; existing files are backed up to .bak; optional/network steps are
+# non-fatal. Toggle Docker with: INSTALL_DOCKER=0 ./install-server.sh
 
 set -uo pipefail
 
@@ -58,7 +61,7 @@ ARCH="$(uname -m)"   # expect x86_64; warn otherwise (release asset names are am
 # 1. apt packages
 # ==========================================================================
 APT_PACKAGES=(
-  curl wget git unzip ca-certificates gnupg build-essential fontconfig
+  curl wget git unzip ca-certificates gnupg build-essential
   zsh zsh-syntax-highlighting
   tmux btop
   libpq-dev                         # ruby-lsp native gem (pg) build header
@@ -75,34 +78,7 @@ else
 fi
 
 # ==========================================================================
-# 2. Meslo Nerd Font  (OPTIONAL — only useful for a LOCAL graphical console)
-# ==========================================================================
-# On a headless box the raw TTY uses kernel console fonts, and over SSH the glyphs
-# are rendered by your CLIENT terminal's font — so installing it here is only
-# useful if you sit at this machine's own graphical console. Skip: INSTALL_FONTS=0.
-log "Installing Meslo Nerd Font (optional)"
-if [ "${INSTALL_FONTS:-1}" = 0 ]; then
-  info "skipped (INSTALL_FONTS=0). Make sure your SSH client's terminal uses a Nerd Font."
-elif fc-list 2>/dev/null | grep -qi 'MesloLGS Nerd Font'; then
-  info "Meslo Nerd Font already present"
-elif have wget && have unzip; then
-  tmp="$(mktemp -d)"
-  if wget -qO "$tmp/Meslo.zip" \
-      https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Meslo.zip; then
-    unzip -oq "$tmp/Meslo.zip" -d "$HOME/.local/share/fonts/Meslo"
-    fc-cache -f "$HOME/.local/share/fonts" >/dev/null 2>&1 || true
-    info "installed Meslo Nerd Font -> ~/.local/share/fonts/Meslo"
-    info "(reminder: your SSH client's terminal still needs a Nerd Font to show the glyphs)"
-  else
-    warn "could not download Meslo.zip (offline?) — install the Nerd Font on your client"
-  fi
-  rm -rf "$tmp"
-else
-  warn "need wget + unzip for the font download"
-fi
-
-# ==========================================================================
-# 3. oh-my-zsh
+# 2. oh-my-zsh
 # ==========================================================================
 log "Installing oh-my-zsh"
 if [ -d "$HOME/.oh-my-zsh" ]; then
@@ -118,7 +94,7 @@ else
 fi
 
 # ==========================================================================
-# 4. starship
+# 3. starship
 # ==========================================================================
 log "Installing starship"
 if have starship; then
@@ -132,7 +108,7 @@ else
 fi
 
 # ==========================================================================
-# 5. mise + ruby
+# 4. mise + ruby
 # ==========================================================================
 log "Installing mise (runtime manager) + ruby"
 if have mise; then
@@ -149,7 +125,7 @@ if have mise; then
 fi
 
 # ==========================================================================
-# 6. Neovim  (recent build to ~/.local — Ubuntu's apt nvim is too old for LazyVim)
+# 5. Neovim  (recent build to ~/.local — Ubuntu's apt nvim is too old for LazyVim)
 # ==========================================================================
 log "Installing Neovim (recent)"
 if have nvim && nvim --version 2>/dev/null | head -1 | grep -qE 'v0\.(1[1-9]|[2-9][0-9])'; then
@@ -178,7 +154,7 @@ else
 fi
 
 # ==========================================================================
-# 7. yazi + ya   (no image preview over SSH; chafa gives ASCII fallback)
+# 6. yazi + ya   (no image preview over SSH; chafa gives ASCII fallback)
 # ==========================================================================
 log "Installing yazi"
 if have yazi; then
@@ -199,7 +175,7 @@ else
 fi
 
 # ==========================================================================
-# 8/9. lazygit + lazydocker   (prebuilt release binaries -> ~/.local/bin)
+# 7/8. lazygit + lazydocker   (prebuilt release binaries -> ~/.local/bin)
 # ==========================================================================
 install_lazy() { # <name> <repo> <binary-in-tarball>
   local name="$1" repo="$2" bin="$3"
@@ -227,7 +203,7 @@ log "Installing lazydocker"
 install_lazy lazydocker jesseduffield/lazydocker lazydocker
 
 # ==========================================================================
-# 10. Docker Engine  (so lazydocker has something to talk to)
+# 9. Docker Engine  (so lazydocker has something to talk to)
 # ==========================================================================
 log "Installing Docker Engine"
 if have docker; then
@@ -249,7 +225,7 @@ else
 fi
 
 # ==========================================================================
-# 11. Place the dotfiles  (console subset — no X11 files)
+# 10. Place the dotfiles  (console subset — no X11 files)
 # ==========================================================================
 log "Placing dotfiles into ~"
 put() {
@@ -265,13 +241,13 @@ put home/.profile  "$HOME/.profile"
 put home/.gitconfig "$HOME/.gitconfig"
 
 # ==========================================================================
-# 12. Theme everything (+ seed tmux/nvim)
+# 11. Theme everything (+ seed tmux/nvim)
 # ==========================================================================
 log "Theming the console stack with apply-theme.sh ($FLAVOR)"
 "$SETUP_DIR/apply-theme.sh" "$FLAVOR" || warn "apply-theme.sh reported an issue — see output above"
 
 # ==========================================================================
-# 13. Default shell -> zsh
+# 12. Default shell -> zsh
 # ==========================================================================
 log "Setting zsh as the default shell"
 ZSH_BIN="$(command -v zsh || true)"
@@ -294,8 +270,8 @@ Next steps:
   • Launch nvim once so lazy.nvim installs LazyVim + catppuccin.
   • If you installed Docker, log out/in so your 'docker' group membership applies
     (then 'docker ps' works without sudo and lazydocker connects).
-  • Make sure YOUR SSH CLIENT's terminal uses a Nerd Font — that's what renders
-    the starship/tmux/lazygit glyphs over SSH.
+  • Set YOUR SSH CLIENT's terminal to a Nerd Font — that's what renders the
+    starship/tmux/lazygit glyphs over SSH.
   • Switch flavor anytime:  ./apply-theme.sh mocha
 
 See README.md for the per-tool notes.

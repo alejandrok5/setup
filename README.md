@@ -22,10 +22,10 @@ overwrites to `.bak`, and treats the network/optional steps as non-fatal. It nee
 **new SSH session** (or `exec zsh`) so the new shell, mise, starship and
 syntax-highlighting take effect.
 
-Toggle the optional steps:
+Skip Docker if you don't want it:
 
 ```bash
-INSTALL_FONTS=0 INSTALL_DOCKER=0 ./install-server.sh   # skip the Nerd Font + Docker
+INSTALL_DOCKER=0 ./install-server.sh
 ```
 
 ## What you get
@@ -51,9 +51,9 @@ mise) install **into `~/.local/bin`** — no system-wide footprint, no sudo for 
 The prompt, tmux status line and lazygit/lazydocker icons use **Nerd Font glyphs**.
 Over SSH those are rendered by **your client terminal's font**, not the server's — so
 **set your local terminal to a Nerd Font** (e.g. *MesloLGS Nerd Font Mono*) for the
-icons to show. `install-server.sh` *also* drops Meslo into `~/.local/share/fonts` on
-the server, but that only helps if you sit at the box's own graphical console; it's
-optional (`INSTALL_FONTS=0`).
+icons to show. `install-server.sh` deliberately installs **no** font on the box: the
+raw TTY uses kernel console fonts and SSH uses your client's font, so a server-side
+TTF wouldn't be rendered anyway.
 
 ## Flavor / re-theme
 
