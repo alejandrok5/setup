@@ -1,0 +1,18 @@
+#!/bin/sh
+# autorandr GLOBAL postswitch hook — runs after EVERY profile switch
+# (hotplug, lid event, manual `autorandr --change`, or rotate.sh).
+# Installed to ~/.config/autorandr/postswitch by displays/install.sh.
+#
+# The wallpaper and polybar are placed per-output, so both must be re-applied
+# whenever the active monitor geometry changes.
+#
+# The compositor does NOT need restarting here: picom auto-reconfigures on RandR
+# changes, and `use-damage = false` in picom.conf makes it fully repaint the
+# wallpaper so it isn't left "cut"/stale on a rotated output.
+
+# Re-paint the wallpaper FIRST and synchronously, so the X root pixmap matches
+# the new framebuffer size before the compositor repaints over it.
+"$HOME/.config/i3/scripts/wallpaper.sh" >/dev/null 2>&1
+
+# Re-place polybar bars for the new geometry.
+"$HOME/.config/polybar/launch.sh" >/dev/null 2>&1 &

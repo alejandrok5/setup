@@ -1,0 +1,13 @@
+# Use the GitHub CLI as the credential helper for github.com / gist.github.com.
+# (Requires `gh auth login` once on the box.)
+[credential "https://github.com"]
+	helper =
+	helper = !/usr/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !/usr/bin/gh auth git-credential
+
+# Set your own identity after install (NOT committed here, so the repo doesn't
+# pin one person's name/email onto every fresh box):
+#   git config --global user.name  "Your Name"
+#   git config --global user.email "you@example.com"

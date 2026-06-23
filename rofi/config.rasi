@@ -1,0 +1,46 @@
+/* ============================================================================
+ * rofi config.rasi — launcher behavior + layout (hand-maintained).
+ *
+ * Split mirrors i3/polybar (layout vs. palette):
+ *   - this file          = the configuration{} block + which theme to load
+ *   - colors.rasi        = @import of the active Catppuccin flavor palette,
+ *                          (re)written by ~/setup/apply-theme.sh <flavor>
+ *   - catppuccin-default.rasi = vendored Catppuccin styling, kept PRISTINE
+ *                          (copied from ~/setup/rofi by apply-theme.sh)
+ *
+ * The mauve selection accent is overridden at the bottom so it matches the
+ * polybar workspace pill and the GTK theme (upstream highlights in near-white).
+ * App icons come from show-icons + the Papirus-Dark icon theme.
+ *
+ * Bound to $mod+d in ~/.config/i3/config (replaces dmenu_run).
+ * ============================================================================ */
+
+configuration {
+    modes:               "drun,window";
+    show-icons:          true;
+    icon-theme:          "Papirus-Dark";
+    drun-display-format: "{name}";
+    display-drun:        "  Apps";
+    display-window:      "  Windows";
+    drun-match-fields:   "name,generic,exec,categories,keywords";
+    window-format:       "{w}   {c}   {t}";
+    font:                "MesloLGS Nerd Font 12";
+}
+
+/* palette (flavor) first, then the styling that consumes its @variables */
+@import "colors.rasi"
+@import "catppuccin-default"
+
+/* Mauve accent override — matches polybar/GTK. Later *{} wins over the theme's. */
+* {
+    selected-normal-background: @mauve;
+    selected-normal-foreground: @base;
+    selected-active-background:  @mauve;
+    selected-active-foreground:  @base;
+    active-foreground:           @mauve;
+}
+
+/* Narrower window (upstream catppuccin-default sets no width → rofi's ~50%). */
+window {
+    width: 40%;
+}

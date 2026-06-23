@@ -1,0 +1,18 @@
+! ---------------------------------------------------------------------------
+! HiDPI for the i3 (Xorg) session — match GNOME.
+! Under Xorg the panel eDP-1 runs at 2880x1800. GNOME drives that same mode at
+! scale 1.25 (-> 2304x1440 logical). 1.25 is fractional, which X11 integer
+! scaling (GDK_SCALE) can't do, so we scale via font DPI: 120 = 96 * 1.25.
+! ---------------------------------------------------------------------------
+Xft.dpi:        120
+
+! Crisp text rendering on the high-density panel.
+Xft.antialias:  true
+Xft.hinting:    true
+Xft.hintstyle:  hintslight
+Xft.rgba:       rgb
+Xft.lcdfilter:  lcddefault
+Xft.autohint:   false
+
+! Scale the X cursor to match (default 24 -> 30 at 1.25x).
+Xcursor.size:   30

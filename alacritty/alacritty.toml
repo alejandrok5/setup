@@ -1,0 +1,40 @@
+general.import = [
+  # uncomment the flavour you want below:
+  # "~/.config/alacritty/catppuccin-latte.toml"
+  #"~/.config/alacritty/catppuccin-frappe.toml"
+  "~/.config/alacritty/catppuccin-macchiato.toml"
+  # "~/.config/alacritty/catppuccin-mocha.toml"
+]
+
+[font]
+size = 14
+
+[font.normal]
+family = "MesloLGS Nerd Font Mono"
+style = "Regular"
+
+[font.bold]
+family = "MesloLGS Nerd Font Mono"
+style = "Bold"
+
+[font.italic]
+family = "MesloLGS Nerd Font Mono"
+style = "Italic"
+
+[font.bold_italic]
+family = "MesloLGS Nerd Font Mono"
+style = "Bold Italic"
+
+[terminal]
+
+[terminal.shell]
+program = "/usr/bin/zsh"
+args = ["-l"]
+
+[[keyboard.bindings]]
+key = "Return"
+mods = "Shift"
+chars = "\u001B\r"
+
+[window]
+opacity = 0.7

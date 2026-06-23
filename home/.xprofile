@@ -1,0 +1,28 @@
+#!/bin/sh
+# ---------------------------------------------------------------------------
+# ~/.xprofile — sourced by the display manager (GDM) when an Xorg session (i3)
+# starts. Sets up fractional 1.25x scaling so i3 matches GNOME.
+#
+# Under Xorg the panel eDP-1 runs at 2880x1800; GNOME drives that mode at
+# scale 1.25 (-> 2304x1440 logical). 1.25 is fractional, so we scale through
+# font DPI (Xft.dpi=120) rather than the integer GDK_SCALE.
+# ---------------------------------------------------------------------------
+
+# Ensure the panel is at the 2880x1800 mode GNOME uses.
+xrandr --output eDP-1 --mode 2880x1800 2>/dev/null
+
+# Load DPI / cursor / Xft settings (Xft.dpi=120 drives the 1.25x scaling).
+[ -f "$HOME/.Xresources" ] && xrdb -merge "$HOME/.Xresources"
+
+# Qt apps: honor the X server DPI (Xft.dpi=120 -> 1.25x, widgets included).
+export QT_AUTO_SCREEN_SCALE_FACTOR=1
+
+# Cursor size for apps that read the env var instead of Xcursor.size.
+export XCURSOR_SIZE=30
+
+# Java/Swing apps (IDEs, etc.).
+export _JAVA_OPTIONS='-Dsun.java2d.uiScale=1.25'
+
+# NOTE: deliberately NOT setting GDK_SCALE — it only does integer scaling (2x),
+# which overshoots 1.25x and makes GTK/Chromium UIs huge. GTK apps scale their
+# fonts (and most em-based geometry) from Xft.dpi instead.
