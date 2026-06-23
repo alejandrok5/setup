@@ -1,114 +1,109 @@
-# setup — server branch (Ubuntu Server, console-only)
+# setup — macos branch (Apple Silicon / Intel)
 
-The **headless** variant of my [desktop setup](https://github.com/alejandrok5/setup/tree/main).
-No window manager, no X11 — just the **themed terminal/TUI stack**, set up with one
-command and made to look good over SSH. Catppuccin everywhere (mauve accent), with
-tmux on Rosé Pine.
+The **macOS** variant of my [i3 desktop setup](https://github.com/alejandrok5/setup/tree/main).
+There's no i3 on macOS, so the desktop layer is **AeroSpace** (an open-source,
+i3-like tiling WM); everything else macOS does natively (compositing, notifications,
+display scaling, media keys) is dropped, and the whole **themed terminal/TUI stack
+ports over** — Catppuccin everywhere (mauve accent), tmux on Rosé Pine.
 
-> This is the `server` branch. The full **i3 (Xorg) desktop** lives on
-> [`main`](https://github.com/alejandrok5/setup/tree/main).
+> This is the `macos` branch. See also `main` (i3 desktop) and `server`
+> (headless Ubuntu).
 
 ## Install
 
 ```bash
-git clone -b server https://github.com/alejandrok5/setup.git ~/setup
+git clone -b macos https://github.com/alejandrok5/setup.git ~/setup
 cd ~/setup
-./install-server.sh                 # or: ./install-server.sh mocha
+./install-macos.sh                 # or: ./install-macos.sh mocha
 ```
 
-`install-server.sh` is idempotent and safe to re-run; it backs up anything it
-overwrites to `.bak`, and treats the network/optional steps as non-fatal. It needs
-`sudo` for the apt + Docker steps and will prompt for it. After it finishes, open a
-**new SSH session** (or `exec zsh`) so the new shell, mise, starship and
-syntax-highlighting take effect.
+`install-macos.sh` installs Homebrew (if absent), runs `brew bundle`, places the
+dotfiles, themes everything, and starts AeroSpace + borders. Idempotent; backs up
+anything it overwrites to `.bak`.
 
-Skip Docker if you don't want it:
+**Required manual step** (no script can do it): grant **AeroSpace** Accessibility
+access — *System Settings → Privacy & Security → Accessibility → enable AeroSpace*.
+It prompts on first launch; tiling does nothing until you allow it.
 
-```bash
-INSTALL_DOCKER=0 ./install-server.sh
-```
+## The stack
 
-## What you get
+| Layer | Choice |
+| --- | --- |
+| Tiling WM | **AeroSpace** (i3-like, TOML, Option = `$mod`, no SIP disable) |
+| Bar | **native menu bar + Stats** (FOSS system monitor) |
+| Accent | **JankyBorders** — mauve focused-window outline (the i3 focus border) |
+| Terminal | **Alacritty** (Catppuccin, ports from Linux) |
+| Launcher | **Spotlight** (`cmd-space`, native) |
+| Shell | zsh + oh-my-zsh + **starship** + zsh-syntax-highlighting |
+| Multiplexer | **tmux** (Rosé Pine, TPM + resurrect/continuum) |
+| Editor | **Neovim / LazyVim** (Catppuccin) |
+| TUIs | **btop · yazi · lazygit · lazydocker** (all Catppuccin, mauve) |
+| Runtimes | **mise** + ruby (for ruby-lsp) |
+| Packages | **Homebrew `Brewfile`** (`brew bundle`) |
 
-| Tool | What | Theme |
-| --- | --- | --- |
-| **zsh** + oh-my-zsh | shell, `plugins=(git)` | — |
-| **starship** | prompt (catppuccin-powerline preset) | Catppuccin `<flavor>` |
-| **zsh-syntax-highlighting** | command coloring | Catppuccin `<flavor>` |
-| **tmux** | TPM + resurrect/continuum (session persistence) | **Rosé Pine** (moon) |
-| **Neovim / LazyVim** | editor (recent nvim, not apt's) | Catppuccin `<flavor>` |
-| **btop** | system monitor | Catppuccin `<flavor>` |
-| **yazi** | file manager (`y` cd-on-exit wrapper) | Catppuccin `<flavor>` (mauve) |
-| **lazygit** | git TUI | Catppuccin `<flavor>` (mauve accent) |
-| **lazydocker** | docker TUI | Catppuccin `<flavor>` (mauve accent) |
-| **mise** + ruby | runtime manager; ruby for ruby-lsp | — |
+Everything installs via Homebrew (`Brewfile`); the WM/bar/terminal go in as casks,
+the rest as formulae.
 
-Binaries that aren't in Ubuntu's repos (Neovim, yazi, lazygit, lazydocker, starship,
-mise) install **into `~/.local/bin`** — no system-wide footprint, no sudo for those.
+## AeroSpace keys (mod = Option/alt)
 
-## Nerd Font (read this)
+| Key | Action |
+| --- | --- |
+| `alt-enter` | new Alacritty window |
+| `cmd-space` | app launcher (native Spotlight) |
+| `alt-1`…`alt-0` | workspaces 1–10 · `alt-shift-N` move window there |
+| `alt-h/j/k/l` | focus · `alt-shift-h/j/k/l` move |
+| `alt-/` `alt-,` | layout tiles / accordion |
+| `alt-f` | fullscreen · `alt-shift-space` float |
+| `alt-shift-q` | close window (or native `cmd-w`/`cmd-q`) |
+| `alt-r` | resize mode (`h/j/k/l`, `enter`/`esc` to exit) |
+| `alt-tab` | last workspace · `alt-shift-c` reload config |
 
-The prompt, tmux status line and lazygit/lazydocker icons use **Nerd Font glyphs**.
-Over SSH those are rendered by **your client terminal's font**, not the server's — so
-**set your local terminal to a Nerd Font** (e.g. *MesloLGS Nerd Font Mono*) for the
-icons to show. `install-server.sh` deliberately installs **no** font on the box: the
-raw TTY uses kernel console fonts and SSH uses your client's font, so a server-side
-TTF wouldn't be rendered anyway.
+Spotify is pinned to workspace 10 (`on-window-detected`), like the i3 `assign`.
+Edit `~/.config/aerospace/aerospace.toml` to taste.
 
-## Flavor / re-theme
+> **Alt overlap:** AeroSpace grabs Option globally, so terminal apps that use Alt
+> chords (e.g. LazyVim's `<A-h/j/k/l>` terminal toggles) are shadowed. Remap one
+> side if it bites.
+
+## Theming / flavor
 
 ```bash
 ./apply-theme.sh [flavor] [component]
 #   flavor:    latte | frappe | macchiato | mocha   (default: macchiato)
-#   component: zsh | starship | btop | yazi | lazygit | lazydocker | nvim | tmux
+#   component: zsh | starship | btop | yazi | lazygit | lazydocker | borders | nvim | tmux
 ```
 
-Re-running is idempotent. Examples:
+`apply-theme.sh` themes the terminal-side stack and **generates** the
+`lazygit`/`lazydocker`/`borders` configs from an embedded Catppuccin palette
+(mauve accent) — those three `config` files are **owned** by the script
+(regenerated each run, `.bak` kept). AeroSpace itself has no colors; the menu bar
+follows macOS appearance. After a zsh change run `exec zsh`; restart btop/yazi/
+lazygit; restart nvim (lazy.nvim recompiles catppuccin). `borders` live-reloads.
 
-```bash
-./apply-theme.sh mocha                 # everything -> Mocha
-./apply-theme.sh macchiato lazygit     # repaint ONLY lazygit
-```
+tmux is Rosé Pine and **flavor-independent** — seeded once to `~/.tmux.conf`
+(with the clipboard binding swapped from `xclip` to **`pbcopy`** for macOS), then
+left alone.
 
-After a zsh change run `exec zsh`; restart btop/yazi/lazygit/lazydocker to pick up
-colors; restart nvim (lazy.nvim recompiles catppuccin on launch). tmux is Rosé Pine
-and **flavor-independent** — `apply-theme.sh` seeds `~/.tmux.conf` once and clones
-the plugins, but never re-themes it.
+## Notes / requirements
 
-**lazygit / lazydocker theming:** these have no upstream Catppuccin repo to vendor,
-so `apply-theme.sh` *generates* `~/.config/{lazygit,lazydocker}/config.yml` from an
-embedded palette (mauve active borders to match the rest). Those two `config.yml`
-files are **owned** by the script (regenerated each run, `.bak` kept) — to change
-layout/keybinds, edit the template in `apply-theme.sh`, not the generated file.
-
-## Quick keys
-
-- **tmux** prefix is `C-a`; `C-a r` reload, `C-a I` install plugins. Mouse mode on
-  (hold **Shift** to drag-select natively). Sessions persist across reboots
-  (resurrect/continuum).
-- **nvim** leader is `\` (ported NvChad-style keymaps); `<C-n>` file explorer,
-  `<leader>ff` find files, `jk` to escape. First launch installs plugins.
-- **yazi**: run `y` (cd's into the last dir on quit) or `yazi`. Image previews are
-  off over SSH (no ueberzug); `chafa` gives an ASCII fallback. See
-  [`yazi-cheatsheet.md`](yazi-cheatsheet.md).
-- **lazygit** `lg`-style: launch `lazygit` in a repo. **lazydocker**: launch
-  `lazydocker` (needs Docker; the installer sets it up + adds you to the `docker`
-  group — log out/in for that to apply).
-
-## Requirements / notes
-
-- **Ubuntu/Debian, x86_64.** The prebuilt-binary URLs target `amd64`/`x86_64`; on
-  arm64 swap the asset names in `install-server.sh`.
-- **Recent Neovim** (≥ 0.11 for LazyVim) is installed to `~/.local` from the official
-  release tarball, because Ubuntu's apt build is usually too old.
-- **Clipboard over SSH:** there's no X clipboard on a headless box; use your
-  terminal's copy (tmux copy-mode → terminal selection) or an OSC52-capable client.
-- **Docker:** installed via `get.docker.com`; you're added to the `docker` group so
-  `docker`/lazydocker work without sudo after a re-login.
+- **Nerd Font:** installed via Homebrew (`font-meslo-lg-nerd-font`) and used by
+  Alacritty for the glyphs in starship/tmux/lazygit.
+- **lazydocker** needs a Docker runtime you provide — **colima** (FOSS),
+  Docker Desktop, or OrbStack. It connects once a daemon exists.
+- **Homebrew on PATH:** `install-macos.sh` adds `eval "$(brew shellenv)"` to
+  `~/.zprofile` (Apple Silicon's `/opt/homebrew/bin` isn't on PATH by default),
+  so new zsh sessions find starship/mise/etc.
+- **yazi image previews** need a graphics-protocol terminal; Alacritty has none,
+  so previews show file info (`chafa` gives an ASCII fallback). Switch to
+  Ghostty/kitty/WezTerm if you want inline images.
+- **Dropped — macOS native:** compositor/transparency, notifications (dunst),
+  GTK, display scaling/autorandr, media keys, touchpad, wallpaper, lock, xorg.
+- **Optional toggles** (System Settings): natural scrolling, Dark mode.
 
 ## Reverting
 
 Each run writes a `.bak` next to anything it overwrites (`~/.zshrc.bak`,
-`~/.config/btop/btop.conf.bak`, `~/.config/lazygit/config.yml.bak`, …). `~/.tmux.conf`
-is seeded once and never rewritten (no `.bak`); to undo it: `rm ~/.tmux.conf`
-(and `rm -rf ~/.tmux/plugins`), then re-run `./apply-theme.sh <flavor> tmux`.
+`~/.config/btop/btop.conf.bak`, `~/.config/lazygit/config.yml.bak`,
+`~/.config/borders/bordersrc.bak`, …). `~/.tmux.conf` is seeded once and never
+rewritten (no `.bak`); to undo it: `rm ~/.tmux.conf` (+ `rm -rf ~/.tmux/plugins`),
+then re-run `./apply-theme.sh <flavor> tmux`.

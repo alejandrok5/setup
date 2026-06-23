@@ -1,34 +1,35 @@
 #!/usr/bin/env bash
 #
-# apply-theme.sh (server branch) — apply a Catppuccin flavor across the CONSOLE
-#                  stack (zsh, starship, btop, yazi, lazygit, lazydocker, nvim)
-#                  and seed the tmux config (Rose Pine — flavor-independent).
+# apply-theme.sh (macOS branch) — apply a Catppuccin flavor across the macOS
+#                  console stack (zsh, starship, btop, yazi, lazygit, lazydocker,
+#                  nvim) + the mauve focus borders (JankyBorders), and seed the
+#                  tmux config (Rose Pine — flavor-independent).
 #
-# This is the headless / Ubuntu-Server variant: no i3/polybar/rofi/dunst/gtk —
-# only terminal/TUI tools that work over SSH. See install-server.sh + README.
+# macOS variant of the i3 desktop kit: AeroSpace (the tiling WM) has no colors to
+# theme, the bar is the native menu bar + Stats, and transparency/notifications/
+# GTK are all native — so the themeable surface is the terminal + every TUI, plus
+# the focused-window border. See install-macos.sh + README.
 #
 # Usage:
 #   ./apply-theme.sh [flavor] [component]
+#     flavor:    latte | frappe | macchiato | mocha   (default: macchiato)
+#     component: zsh starship btop yazi lazygit lazydocker borders nvim tmux
 #
-#   flavor:    latte | frappe | macchiato | mocha   (default: macchiato)
-#   component: optional — re-theme just ONE target (zsh starship btop yazi
-#              lazygit lazydocker nvim tmux) instead of all of them
-#
-# lazygit/lazydocker have no upstream Catppuccin repo to vendor, so their colors
-# are generated here from an embedded palette (mauve accent, matching the rest).
-# Their ~/.config/<tool>/config.yml is OWNED by this script (regenerated each run,
-# .bak kept) — like i3's colors.conf on the desktop branch.
+# Written for macOS (BSD): `sed -i ''`, explicit mktemp templates, Homebrew paths.
+# lazygit/lazydocker/borders have no upstream Catppuccin repo to vendor, so their
+# configs are generated here from an embedded palette (mauve accent) and OWNED by
+# the script (regenerated each run, .bak kept).
 
-set -euo pipefail
+set -uo pipefail
 
 # --- locate ourselves / sources -------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ZSH_THEMES_DIR="$SCRIPT_DIR/zsh-syntax-highlighting/themes"
 BTOP_THEMES_DIR="$SCRIPT_DIR/btop/themes"
-YAZI_SRC_DIR="$SCRIPT_DIR/yazi"            # vendored Catppuccin yazi themes + tmThemes
-STARSHIP_SRC="$SCRIPT_DIR/starship/catppuccin-powerline.toml" # vendored official starship preset
-TMUX_SRC="$SCRIPT_DIR/tmux/tmux.conf"     # vendored tmux config (Rose Pine; seeded if absent)
-NVIM_SRC_DIR="$SCRIPT_DIR/nvim"           # vendored LazyVim config (seeded if absent)
+YAZI_SRC_DIR="$SCRIPT_DIR/yazi"
+STARSHIP_SRC="$SCRIPT_DIR/starship/catppuccin-powerline.toml"
+TMUX_SRC="$SCRIPT_DIR/tmux/tmux.conf"
+NVIM_SRC_DIR="$SCRIPT_DIR/nvim"
 
 # --- args ------------------------------------------------------------------
 FLAVOR="${1:-macchiato}"
@@ -44,7 +45,11 @@ ONLY="${2:-}"
 # --- destinations ----------------------------------------------------------
 ZSH_DIR="$HOME/.zsh"
 ZSHRC="$HOME/.zshrc"
-ZSH_PLUGIN="/usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+# zsh-syntax-highlighting ships via Homebrew on macOS (prefix differs on Apple
+# Silicon vs Intel), so resolve it instead of hardcoding /usr/share like Linux.
+ZSH_PLUGIN="$(brew --prefix 2>/dev/null)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+[ -f "$ZSH_PLUGIN" ] || ZSH_PLUGIN="/opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+[ -f "$ZSH_PLUGIN" ] || ZSH_PLUGIN="/usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
 ZSH_MARK_BEGIN="# >>> catppuccin zsh-syntax-highlighting >>>"
 ZSH_MARK_END="# <<< catppuccin zsh-syntax-highlighting <<<"
 STARSHIP_CONFIG="$HOME/.config/starship.toml"
@@ -61,9 +66,10 @@ NVIM_COLORSCHEME="$NVIM_PLUGIN_DIR/colorscheme.lua"
 YAZI_DIR="$HOME/.config/yazi"
 YAZI_ACCENT="mauve"
 
-backup() { [ -f "$1" ] && cp -f "$1" "$1.bak" || true; }  # no-op (success) if absent
+backup() { [ -f "$1" ] && cp -f "$1" "$1.bak" || true; }
+mktmp()  { mktemp "${TMPDIR:-/tmp}/apply-theme.XXXXXX"; }   # BSD mktemp needs a template
 
-# Embedded Catppuccin palette (only the slots lazygit/lazydocker need).
+# Embedded Catppuccin palette (only the slots the generated configs need).
 _ctp_palette() {
   case "$1" in
     latte)
@@ -92,7 +98,7 @@ _ctp_palette() {
 if [ -n "$ONLY" ]; then
   echo ">> Applying Catppuccin '$FLAVOR' to: $ONLY"
 else
-  echo ">> Applying Catppuccin '$FLAVOR' to zsh, starship, btop, yazi, lazygit, lazydocker, nvim (plus tmux — Rose Pine, flavor-independent)"
+  echo ">> Applying Catppuccin '$FLAVOR' to zsh, starship, btop, yazi, lazygit, lazydocker, borders, nvim (plus tmux — Rose Pine, flavor-independent)"
 fi
 
 # ==========================================================================
@@ -112,16 +118,14 @@ apply_zsh() {
 
   if [ ! -f "$ZSH_PLUGIN" ]; then
     echo "   [zsh] WARNING: plugin not found at $ZSH_PLUGIN" >&2
-    echo "         install it, e.g.: sudo apt-get install zsh-syntax-highlighting" >&2
+    echo "         install it, e.g.: brew install zsh-syntax-highlighting" >&2
   fi
 
   touch "$ZSHRC"
   backup "$ZSHRC"
 
-  # Drop any previous managed block, then append a fresh one at the end so the
-  # plugin remains the last thing sourced.
   local tmp
-  tmp="$(mktemp)"
+  tmp="$(mktmp)"
   awk -v b="$ZSH_MARK_BEGIN" -v e="$ZSH_MARK_END" '
     $0 == b {skip=1} skip==0 {print} $0 == e {skip=0}
   ' "$ZSHRC" > "$tmp"
@@ -141,12 +145,11 @@ apply_zsh() {
 }
 
 # ==========================================================================
-# starship (the prompt — replaces ZSH_THEME, NOT the oh-my-zsh plugins)
+# starship (the prompt)
 # ==========================================================================
 apply_starship() {
   if ! command -v starship >/dev/null 2>&1; then
-    echo "   [starship] WARNING: starship not on PATH — install it first:" >&2
-    echo "              curl -fsSL https://starship.rs/install.sh | sh -s -- -b ~/.local/bin -y" >&2
+    echo "   [starship] WARNING: starship not on PATH — install it first: brew install starship" >&2
   fi
 
   mkdir -p "$(dirname "$STARSHIP_CONFIG")"
@@ -164,19 +167,18 @@ apply_starship() {
     } > "$STARSHIP_CONFIG"
     echo "   [starship] seeded $STARSHIP_CONFIG (palette = catppuccin_$FLAVOR) — it's yours now"
   elif grep -qE '^palette = ' "$STARSHIP_CONFIG"; then
-    sed -i -E "s|^palette = .*|palette = \"catppuccin_$FLAVOR\"|" "$STARSHIP_CONFIG"
+    sed -i '' -E "s|^palette = .*|palette = \"catppuccin_$FLAVOR\"|" "$STARSHIP_CONFIG"
     echo "   [starship] set palette = catppuccin_$FLAVOR in $STARSHIP_CONFIG (your layout untouched)"
   else
     echo "   [starship] note: no 'palette =' line in $STARSHIP_CONFIG — flavor not applied." >&2
-    echo "              add one, or delete the file and re-run to re-seed from the preset." >&2
   fi
 
   # --- wire .zshrc ----------------------------------------------------------
   touch "$ZSHRC"
   backup "$ZSHRC"
-  sed -i -E 's|^ZSH_THEME=.*|ZSH_THEME=""  # Starship owns the prompt (see block below)|' "$ZSHRC"
+  sed -i '' -E 's|^ZSH_THEME=.*|ZSH_THEME=""  # Starship owns the prompt (see block below)|' "$ZSHRC"
   local tmp
-  tmp="$(mktemp)"
+  tmp="$(mktmp)"
   awk -v b="$STARSHIP_MARK_BEGIN" -v e="$STARSHIP_MARK_END" '
     $0 == b {skip=1; next}
     $0 == e {skip=0; next}
@@ -188,9 +190,6 @@ apply_starship() {
       print "# Managed by ~/setup/apply-theme.sh — Starship owns the prompt."
       print "# Loaded AFTER oh-my-zsh so it wins the prompt, but BEFORE the"
       print "# zsh-syntax-highlighting block, which must stay sourced last."
-      print "# Make sure ~/.local/bin (default starship install dir) is reachable"
-      print "# here — the main PATH export may come later in this file."
-      print "command -v starship >/dev/null 2>&1 || export PATH=\"$HOME/.local/bin:$PATH\""
       print "command -v starship >/dev/null 2>&1 && eval \"$(starship init zsh)\""
       print e
     }
@@ -223,14 +222,11 @@ apply_btop() {
   touch "$BTOP_CONF"
   backup "$BTOP_CONF"
   if grep -qE '^[[:space:]]*color_theme[[:space:]]*=' "$BTOP_CONF"; then
-    sed -i -E "s|^[[:space:]]*color_theme[[:space:]]*=.*|color_theme = \"$theme_name\"|" "$BTOP_CONF"
+    sed -i '' -E "s|^[[:space:]]*color_theme[[:space:]]*=.*|color_theme = \"$theme_name\"|" "$BTOP_CONF"
   else
     printf 'color_theme = "%s"\n' "$theme_name" >> "$BTOP_CONF"
   fi
-  echo "   [btop] set color_theme = \"$theme_name\" in $BTOP_CONF"
-  # On a headless box there's usually no compositor, so keep btop's own background
-  # (theme_background = true is btop's default — we leave it alone here).
-  echo "   [btop] (restart btop to see it)"
+  echo "   [btop] set color_theme = \"$theme_name\" in $BTOP_CONF (restart btop to see it)"
 }
 
 # ==========================================================================
@@ -249,7 +245,6 @@ apply_yazi() {
   cp -f "$theme" "$YAZI_DIR/theme.toml"
   cp -f "$tm" "$YAZI_DIR/Catppuccin-$FLAVOR.tmTheme"
   echo "   [yazi] wrote $YAZI_DIR/theme.toml (flavor = $FLAVOR, accent = $YAZI_ACCENT)"
-  # yazi loads its theme on launch — reopen yazi to see the change.
 }
 
 # ==========================================================================
@@ -259,13 +254,11 @@ apply_lazygit() {
   command -v lazygit >/dev/null 2>&1 \
     || echo "   [lazygit] note: lazygit not on PATH yet — theme written for when it is" >&2
   _ctp_palette "$FLAVOR"
-  local dir="$HOME/.config/lazygit" conf="$HOME/.config/lazygit/config.yml"
-  mkdir -p "$dir"
+  local conf="$HOME/.config/lazygit/config.yml"
+  mkdir -p "$(dirname "$conf")"
   backup "$conf"
   cat > "$conf" <<EOF
-# AUTO-GENERATED by ~/setup/apply-theme.sh — Catppuccin $FLAVOR (mauve accent).
-# OWNED file: regenerated every run (.bak kept). To change layout/keybinds, edit
-# the template in apply-theme.sh (apply_lazygit) rather than this file.
+# AUTO-GENERATED by ~/setup/apply-theme.sh — Catppuccin $FLAVOR (mauve accent). OWNED file.
 gui:
   nerdFontsVersion: "3"
   theme:
@@ -299,12 +292,11 @@ apply_lazydocker() {
   command -v lazydocker >/dev/null 2>&1 \
     || echo "   [lazydocker] note: lazydocker not on PATH yet — theme written for when it is" >&2
   _ctp_palette "$FLAVOR"
-  local dir="$HOME/.config/lazydocker" conf="$HOME/.config/lazydocker/config.yml"
-  mkdir -p "$dir"
+  local conf="$HOME/.config/lazydocker/config.yml"
+  mkdir -p "$(dirname "$conf")"
   backup "$conf"
   cat > "$conf" <<EOF
-# AUTO-GENERATED by ~/setup/apply-theme.sh — Catppuccin $FLAVOR (mauve accent).
-# OWNED file: regenerated every run (.bak kept).
+# AUTO-GENERATED by ~/setup/apply-theme.sh — Catppuccin $FLAVOR (mauve accent). OWNED file.
 gui:
   theme:
     activeBorderColor:
@@ -321,10 +313,40 @@ EOF
 }
 
 # ==========================================================================
+# borders (JankyBorders) — mauve focused-window outline = the i3 focus accent
+# ==========================================================================
+apply_borders() {
+  command -v borders >/dev/null 2>&1 \
+    || echo "   [borders] note: borders not on PATH yet — config written for when it is" >&2
+  _ctp_palette "$FLAVOR"
+  local active="${ctp_mauve#\#}" inactive="${ctp_surface1#\#}"
+  local conf="$HOME/.config/borders/bordersrc"
+  mkdir -p "$(dirname "$conf")"
+  backup "$conf"
+  cat > "$conf" <<EOF
+#!/bin/bash
+# AUTO-GENERATED by ~/setup/apply-theme.sh — Catppuccin $FLAVOR (mauve accent). OWNED file.
+options=(
+  style=round
+  width=5.0
+  hidpi=off
+  active_color=0xff${active}
+  inactive_color=0xff${inactive}
+)
+borders "\${options[@]}"
+EOF
+  chmod +x "$conf"
+  echo "   [borders] wrote $conf (active = $ctp_mauve)"
+  # Live-reload a running daemon so the new color applies now.
+  if command -v borders >/dev/null 2>&1 && pgrep -x borders >/dev/null 2>&1; then
+    "$conf" >/dev/null 2>&1 && echo "   [borders] reloaded running daemon" || true
+  fi
+}
+
+# ==========================================================================
 # Neovim (LazyVim + catppuccin/nvim)
 # ==========================================================================
 apply_nvim() {
-  # --- 1. bootstrap LazyVim if there's no nvim config at all ----------------
   if [ ! -d "$NVIM_DIR" ]; then
     if command -v git >/dev/null 2>&1; then
       if git clone --depth 1 -q https://github.com/LazyVim/starter "$NVIM_DIR" 2>/dev/null; then
@@ -340,7 +362,6 @@ apply_nvim() {
     fi
   fi
 
-  # --- 2. seed our vendored config (absent or pristine-stub only) ------------
   _nvim_has_code() {
     awk '{ l=$0; sub(/^[[:space:]]+/,"",l); if (l=="") next; if (l ~ /^--/) next; c=1 }
          END { exit (c?0:1) }' "$1"
@@ -369,28 +390,22 @@ apply_nvim() {
   _nvim_seed lua/plugins/formatting.lua
   unset -f _nvim_has_code _nvim_seed
 
-  # --- bootstrap the global ruby-lsp gem so the Ruby LSP attaches ------------
   if command -v ruby-lsp >/dev/null 2>&1; then
     echo "   [nvim] ruby-lsp present: $(command -v ruby-lsp)"
   elif command -v gem >/dev/null 2>&1; then
-    if gem install ruby-lsp >/dev/null 2>&1; then
-      echo "   [nvim] installed ruby-lsp gem"
-    else
-      echo "   [nvim] WARNING: 'gem install ruby-lsp' failed — install it manually for Ruby LSP" >&2
-    fi
+    gem install ruby-lsp >/dev/null 2>&1 \
+      && echo "   [nvim] installed ruby-lsp gem" \
+      || echo "   [nvim] WARNING: 'gem install ruby-lsp' failed — install it manually for Ruby LSP" >&2
   else
     echo "   [nvim] note: no 'gem' on PATH — install Ruby (mise) + 'gem install ruby-lsp' for Ruby LSP" >&2
   fi
 
-  # --- 3. theme: regenerate the owned colorscheme spec ----------------------
   mkdir -p "$NVIM_PLUGIN_DIR"
   backup "$NVIM_COLORSCHEME"
-
   cat > "$NVIM_COLORSCHEME" <<EOF
 -- AUTO-GENERATED by ~/setup/apply-theme.sh — do not edit by hand.
 -- Flavor: catppuccin-$FLAVOR
 return {
-  -- Install catppuccin and pin the flavour.
   {
     "catppuccin/nvim",
     name = "catppuccin",
@@ -398,8 +413,6 @@ return {
       flavour = "$FLAVOR",
     },
   },
-
-  -- Make catppuccin LazyVim's active colorscheme.
   {
     "LazyVim/LazyVim",
     opts = {
@@ -417,7 +430,7 @@ EOF
 # ==========================================================================
 apply_tmux() {
   if ! command -v tmux >/dev/null 2>&1; then
-    echo "   [tmux] WARNING: tmux not on PATH — install it first (e.g. apt-get install tmux)" >&2
+    echo "   [tmux] WARNING: tmux not on PATH — install it first (brew install tmux)" >&2
   fi
   if [ ! -f "$TMUX_SRC" ]; then
     echo "   [tmux] skip: vendored config not found at $TMUX_SRC" >&2
@@ -427,13 +440,19 @@ apply_tmux() {
   if [ ! -f "$TMUX_CONFIG" ]; then
     {
       echo "# Your tmux config — seeded from ~/setup/tmux/tmux.conf (Rose Pine, moon)."
-      echo "# Edit freely; apply-theme.sh never rewrites this file — the tmux theme is"
-      echo "# Rose Pine and independent of the Catppuccin flavor arg."
+      echo "# Edit freely; apply-theme.sh never rewrites this file."
       cat "$TMUX_SRC"
     } > "$TMUX_CONFIG"
     echo "   [tmux] seeded $TMUX_CONFIG (Rose Pine) — it's yours now"
   else
-    echo "   [tmux] $TMUX_CONFIG present — left as-is (Rose Pine is flavor-independent)"
+    echo "   [tmux] $TMUX_CONFIG present — left as-is"
+  fi
+
+  # macOS clipboard: the vendored config copies via Linux's xclip; swap to pbcopy.
+  # Idempotent (no-op once already pbcopy); BSD sed needs the empty -i argument.
+  if grep -q 'xclip -selection clipboard' "$TMUX_CONFIG" 2>/dev/null; then
+    sed -i '' 's|xclip -selection clipboard|pbcopy|g' "$TMUX_CONFIG"
+    echo "   [tmux] swapped xclip -> pbcopy in $TMUX_CONFIG (macOS clipboard)"
   fi
 
   if command -v git >/dev/null 2>&1; then
@@ -471,9 +490,9 @@ apply_tmux() {
 
 if [ -n "$ONLY" ]; then
   case "$ONLY" in
-    zsh|starship|btop|yazi|lazygit|lazydocker|nvim|tmux) "apply_$ONLY" ;;
+    zsh|starship|btop|yazi|lazygit|lazydocker|borders|nvim|tmux) "apply_$ONLY" ;;
     *)
-      echo "error: unknown component '$ONLY' (expected one of: zsh starship btop yazi lazygit lazydocker nvim tmux)" >&2
+      echo "error: unknown component '$ONLY' (expected one of: zsh starship btop yazi lazygit lazydocker borders nvim tmux)" >&2
       exit 1
       ;;
   esac
@@ -484,6 +503,7 @@ else
   apply_yazi
   apply_lazygit
   apply_lazydocker
+  apply_borders
   apply_nvim
   apply_tmux
 fi
