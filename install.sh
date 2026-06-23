@@ -108,9 +108,9 @@ fi
 log "Installing Meslo Nerd Font"
 if fc-list 2>/dev/null | grep -qi 'MesloLGS Nerd Font'; then
   info "Meslo Nerd Font already present"
-elif have curl && have unzip; then
+elif have wget && have unzip; then
   tmp="$(mktemp -d)"
-  if curl -fsSL -o "$tmp/Meslo.zip" \
+  if wget -qO "$tmp/Meslo.zip" \
       https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Meslo.zip; then
     unzip -oq "$tmp/Meslo.zip" -d "$HOME/.local/share/fonts/Meslo"
     fc-cache -f "$HOME/.local/share/fonts" >/dev/null 2>&1 || true
@@ -120,7 +120,7 @@ elif have curl && have unzip; then
   fi
   rm -rf "$tmp"
 else
-  warn "need curl + unzip for the font download"
+  warn "need wget + unzip for the font download"
 fi
 
 # ==========================================================================
