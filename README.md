@@ -18,8 +18,19 @@ cd ~/setup
 ```
 
 `install-macos.sh` installs Homebrew (if absent), runs `brew bundle`, places the
-dotfiles, themes everything, and starts AeroSpace + borders. Idempotent; backs up
-anything it overwrites to `.bak`.
+dotfiles, themes everything, and starts AeroSpace + borders. Idempotent and
+re-runnable.
+
+**Safe on a Mac you already use.** Before changing anything, step 0 snapshots
+every file it touches into a timestamped `~/.setup-backup-<date>/` and writes a
+`rollback.sh` there — so you get the full themed result, fully reversible. Undo
+everything (restore your originals, remove what it created) with:
+
+```bash
+~/.setup-backup-<date>/rollback.sh
+```
+
+Rollback restores configs only; it leaves the installed Homebrew packages in place.
 
 **Required manual step** (no script can do it): grant **AeroSpace** Accessibility
 access — *System Settings → Privacy & Security → Accessibility → enable AeroSpace*.
@@ -102,8 +113,17 @@ left alone.
 
 ## Reverting
 
-Each run writes a `.bak` next to anything it overwrites (`~/.zshrc.bak`,
-`~/.config/btop/btop.conf.bak`, `~/.config/lazygit/config.yml.bak`,
-`~/.config/borders/bordersrc.bak`, …). `~/.tmux.conf` is seeded once and never
-rewritten (no `.bak`); to undo it: `rm ~/.tmux.conf` (+ `rm -rf ~/.tmux/plugins`),
-then re-run `./apply-theme.sh <flavor> tmux`.
+**Undo the whole install** — restore the configs it replaced and remove the ones
+it created — with the generated rollback script:
+
+```bash
+~/.setup-backup-<date>/rollback.sh
+```
+
+That timestamped folder is the pre-install snapshot `install-macos.sh` takes in
+step 0. Rollback restores configs only; it leaves Homebrew packages and the cloned
+tmux/nvim plugins in place.
+
+For a single re-theme, `apply-theme.sh` also drops a `.bak` next to each file it
+rewrites (`~/.config/lazygit/config.yml.bak`, `~/.config/borders/bordersrc.bak`, …),
+so you can revert one component without the full rollback.

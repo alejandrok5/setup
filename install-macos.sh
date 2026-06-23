@@ -7,6 +7,7 @@
 # macOS sibling of the i3 install.sh. Everything goes through Homebrew; then it
 # places the dotfiles, themes the console stack + mauve borders, and starts
 # AeroSpace/borders. In order:
+#   0. BACK UP existing config  (snapshot -> ~/.setup-backup-<timestamp>/ + rollback.sh)
 #   1. Homebrew                 (installed if absent)
 #   2. brew bundle              (Brewfile: aerospace, alacritty, stats, font, TUI stack)
 #   3. ~/.zprofile brew PATH    (so zsh login shells see /opt/homebrew tools)
@@ -17,8 +18,12 @@
 #   8. start services           (borders; launch AeroSpace + Stats)
 #   9. default login shell      (zsh — already the macOS default)
 #
-# Idempotent; existing files backed up to .bak. The one thing it CANNOT do: grant
-# AeroSpace the Accessibility permission — you click that once in System Settings.
+# SAFE ON A POPULATED MAC: step 0 snapshots everything this install touches into a
+# timestamped backup dir BEFORE changing anything, and writes a rollback.sh there
+# that restores your originals and removes whatever the install created. So you get
+# the full themed result, fully reversible with one command. Re-runnable.
+# The one thing it CANNOT do: grant AeroSpace the Accessibility permission — you
+# click that once in System Settings.
 
 set -uo pipefail
 SETUP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -31,9 +36,59 @@ log()  { printf '\n\033[1;35m>> %s\033[0m\n' "$*"; }
 info() { printf '   %s\n' "$*"; }
 warn() { printf '   \033[1;33mWARN:\033[0m %s\n' "$*" >&2; }
 have() { command -v "$1" >/dev/null 2>&1; }
-backup() { [ -e "$1" ] && cp -f "$1" "$1.bak" 2>/dev/null || true; }
 
 [ "$(uname)" = Darwin ] || warn "this isn't macOS (uname=$(uname)) — use install.sh (desktop) or install-server.sh"
+
+# ==========================================================================
+# 0. Back up existing config  (rollback point)
+# ==========================================================================
+# Every path the install can create or overwrite — snapshotted BEFORE anything
+# changes, so rollback.sh can restore originals and delete install-created files.
+SNAPSHOT_PATHS=(
+  .zshrc .zprofile .gitconfig .tmux.conf .zsh
+  .config/aerospace .config/alacritty .config/starship.toml
+  .config/btop .config/yazi .config/lazygit .config/lazydocker
+  .config/borders .config/nvim
+)
+BACKUP_DIR="$HOME/.setup-backup-$(date +%Y%m%d-%H%M%S)"
+log "Backing up existing config -> ${BACKUP_DIR/#$HOME/~}"
+mkdir -p "$BACKUP_DIR"
+for rel in "${SNAPSHOT_PATHS[@]}"; do
+  if [ -e "$HOME/$rel" ]; then
+    mkdir -p "$BACKUP_DIR/$(dirname "$rel")"
+    cp -a "$HOME/$rel" "$BACKUP_DIR/$rel"
+    info "saved $rel"
+  fi
+done
+
+# Write a self-contained rollback script next to the snapshot.
+cat > "$BACKUP_DIR/rollback.sh" <<ROLLBACK
+#!/usr/bin/env bash
+# rollback.sh — undo the macOS setup install: restore the configs it replaced and
+# remove the ones it created. Does NOT uninstall Homebrew packages or remove the
+# cloned tmux/nvim plugins (those are harmless and shared).
+set -uo pipefail
+BACKUP_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+PATHS=( ${SNAPSHOT_PATHS[*]} )
+echo ">> Rolling back from \$BACKUP_DIR"
+command -v brew >/dev/null 2>&1 && brew services stop borders >/dev/null 2>&1 || true
+osascript -e 'quit app "AeroSpace"' >/dev/null 2>&1 || true
+osascript -e 'quit app "Stats"' >/dev/null 2>&1 || true
+for rel in "\${PATHS[@]}"; do
+  if [ -e "\$BACKUP_DIR/\$rel" ]; then
+    mkdir -p "\$HOME/\$(dirname "\$rel")"
+    rm -rf "\$HOME/\$rel"
+    cp -a "\$BACKUP_DIR/\$rel" "\$HOME/\$rel"
+    echo "   restored \$rel"
+  elif [ -e "\$HOME/\$rel" ]; then
+    rm -rf "\$HOME/\$rel"
+    echo "   removed  \$rel (created by the install)"
+  fi
+done
+echo ">> Rollback complete. Open a new shell. (Homebrew packages were left installed.)"
+ROLLBACK
+chmod +x "$BACKUP_DIR/rollback.sh"
+info "rollback script -> ${BACKUP_DIR/#$HOME/~}/rollback.sh"
 
 # ==========================================================================
 # 1. Homebrew
@@ -101,13 +156,13 @@ else
 fi
 
 # ==========================================================================
-# 6. Place dotfiles
+# 6. Place dotfiles  (originals already snapshotted in step 0)
 # ==========================================================================
 log "Placing dotfiles"
 put() {
   local s="$SETUP_DIR/$1" d="$2"
   [ -e "$s" ] || { warn "missing in repo: $1"; return; }
-  mkdir -p "$(dirname "$d")"; backup "$d"; cp -f "$s" "$d"
+  mkdir -p "$(dirname "$d")"; cp -f "$s" "$d"
   info "$1 -> ${d/#$HOME/~}"
 }
 put home/.zshrc              "$HOME/.zshrc"
@@ -154,6 +209,11 @@ esac
 cat <<EOF
 
 $(printf '\033[1;32m✓ macOS install complete (flavor: %s)\033[0m' "$FLAVOR")
+
+Your previous config was saved to:  ${BACKUP_DIR/#$HOME/~}
+Undo EVERYTHING this did (restores your originals, removes what it created) with:
+  ${BACKUP_DIR/#$HOME/~}/rollback.sh
+(rollback leaves Homebrew packages installed.)
 
 REQUIRED manual step (macOS won't let a script do this):
   • Grant AeroSpace Accessibility access — System Settings → Privacy & Security →
