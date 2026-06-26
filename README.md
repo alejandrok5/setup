@@ -74,6 +74,7 @@ setup/
 ├── picom/                      # picom.conf + shaders/ (lock.glsl spinning-orb lock shader)
 ├── home/                       # ~ dotfiles: .zshrc .xprofile .Xresources .profile .gitconfig
 ├── xdg-desktop-portal/         # portals.conf (force GTK file chooser for Brave/Chromium)
+├── applications/               # brave-browser.desktop override → VA-API hw video decode (~/.local/share/applications)
 │
 │   #  ── THEME sources — read by apply-theme.sh ──
 ├── zsh-syntax-highlighting/    # vendored https://github.com/catppuccin/zsh-syntax-highlighting
@@ -372,6 +373,14 @@ Notes / gotchas:
   overshoot. Pin them explicitly — the i3 Brave binding launches with
   `--force-device-scale-factor=1.25`. Apply the same flag to other
   Chromium/Electron launchers if they come up the wrong size.
+- **Brave hardware video decode.** The i3 Brave binding also adds
+  `--enable-features=VaapiVideoDecodeLinuxGL` so the AMD iGPU decodes VP9/H.264
+  in hardware. Without it Chromium decodes every video tile on the CPU — Google
+  Meet alone can saturate the cores and lag the whole desktop.
+  `applications/brave-browser.desktop` carries the same flag for menu/rofi
+  launches. Verify in `brave://gpu` → *Video Decode: Hardware accelerated*.
+  Caveat: this APU has no AV1 hardware decode, so AV1 streams still fall to the
+  CPU, and video *encode* (your outgoing camera) stays software.
 
 Apply without a reboot: `xrdb -merge ~/.Xresources` then `i3-msg restart`. The
 env vars only take effect on a fresh session (log out and back into i3).

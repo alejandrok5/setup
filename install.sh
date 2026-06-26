@@ -341,6 +341,13 @@ put picom/shaders/OldCRT.glsl       "$HOME/.config/picom/shaders/OldCRT.glsl"
 # xdg portal: force GTK file chooser for Brave/Chromium
 put xdg-desktop-portal/portals.conf "$HOME/.config/xdg-desktop-portal/portals.conf"
 
+# Brave .desktop override: shadows the packaged launcher to add VA-API hardware
+# video decode (--enable-features=VaapiVideoDecodeLinuxGL). The i3 $mod+b bind
+# carries the same flag; this covers menu/rofi launches. Lives in ~/.local so an
+# `apt upgrade` of brave-browser can't clobber it.
+put applications/brave-browser.desktop "$HOME/.local/share/applications/brave-browser.desktop"
+update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
+
 # home dotfiles
 put home/.zshrc                     "$HOME/.zshrc"
 put home/.xprofile                  "$HOME/.xprofile"

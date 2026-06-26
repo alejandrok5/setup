@@ -107,7 +107,9 @@ bindsym $mod+Return exec alacritty
 # start the Brave web browser
 # --force-device-scale-factor=1.25 pins Brave to GNOME's 1.25x; without it
 # Chromium auto-detection can overshoot and oversize the UI.
-bindsym $mod+b exec --no-startup-id brave-browser
+# --enable-features=VaapiVideoDecodeLinuxGL turns on AMD hardware video
+# decode (VP9/H.264) so Google Meet doesn't melt the CPU in software.
+bindsym $mod+b exec --no-startup-id brave-browser --enable-features=VaapiVideoDecodeLinuxGL
 # --force-device-scale-factor=1.25
 
 # Spotify on workspace 10. The assign rule pins its window to ws10; the
