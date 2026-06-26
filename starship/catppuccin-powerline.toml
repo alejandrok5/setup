@@ -1,12 +1,12 @@
 "$schema" = 'https://starship.rs/config-schema.json'
 
 format = """
-[](red)\
+[](mauve)\
 $os\
-[](fg:red bg:yellow)\
+[](fg:mauve bg:green)\
 $git_branch\
 $git_status\
-[](fg:yellow bg:green)\
+[](fg:green bg:yellow)\
 $c\
 $rust\
 $golang\
@@ -18,9 +18,9 @@ $kotlin\
 $haskell\
 $python\
 $ruby\
-[](fg:green bg:mauve)\
+[](fg:yellow bg:red)\
 $directory\
-[](fg:mauve)\
+[](fg:red)\
 $cmd_duration\
 $line_break\
 $character"""
@@ -29,7 +29,7 @@ palette = "catppuccin_macchiato"
 
 [os]
 disabled = false
-style = "bg:red fg:crust"
+style = "bg:mauve fg:crust"
 
 [os.symbols]
 Windows = ""
@@ -55,12 +55,12 @@ RedHatEnterprise = "󱄛"
 
 [username]
 show_always = true
-style_user = "bg:red fg:crust"
-style_root = "bg:red fg:crust"
+style_user = "bg:mauve fg:crust"
+style_root = "bg:mauve fg:crust"
 format = '[ $user]($style)'
 
 [directory]
-style = "bg:mauve fg:crust"
+style = "bg:red fg:crust"
 format = "[ $path ]($style)"
 truncation_length = 2
 truncate_to_repo = false
@@ -75,67 +75,67 @@ truncation_symbol = ""
 
 [git_branch]
 symbol = ""
-style = "bg:yellow"
-format = '[[ $symbol $branch ](fg:crust bg:yellow)]($style)'
+style = "bg:green"
+format = '[[ $symbol $branch ](fg:crust bg:green)]($style)'
 
 [git_status]
-style = "bg:yellow"
-format = '[[($all_status$ahead_behind )](fg:crust bg:yellow)]($style)'
+style = "bg:green"
+format = '[[($all_status$ahead_behind )](fg:crust bg:green)]($style)'
 
 [nodejs]
 symbol = ""
-style = "bg:green"
-format = '[[ $symbol( $version) ](fg:crust bg:green)]($style)'
+style = "bg:yellow"
+format = '[[ $symbol( $version) ](fg:crust bg:yellow)]($style)'
 
 [bun]
 symbol = ""
-style = "bg:green"
-format = '[[ $symbol( $version) ](fg:crust bg:green)]($style)'
+style = "bg:yellow"
+format = '[[ $symbol( $version) ](fg:crust bg:yellow)]($style)'
 
 [c]
 symbol = " "
-style = "bg:green"
-format = '[[ $symbol( $version) ](fg:crust bg:green)]($style)'
+style = "bg:yellow"
+format = '[[ $symbol( $version) ](fg:crust bg:yellow)]($style)'
 
 [rust]
 symbol = ""
-style = "bg:green"
-format = '[[ $symbol( $version) ](fg:crust bg:green)]($style)'
+style = "bg:yellow"
+format = '[[ $symbol( $version) ](fg:crust bg:yellow)]($style)'
 
 [golang]
 symbol = ""
-style = "bg:green"
-format = '[[ $symbol( $version) ](fg:crust bg:green)]($style)'
+style = "bg:yellow"
+format = '[[ $symbol( $version) ](fg:crust bg:yellow)]($style)'
 
 [php]
 symbol = ""
-style = "bg:green"
-format = '[[ $symbol( $version) ](fg:crust bg:green)]($style)'
+style = "bg:yellow"
+format = '[[ $symbol( $version) ](fg:crust bg:yellow)]($style)'
 
 [java]
 symbol = " "
-style = "bg:green"
-format = '[[ $symbol( $version) ](fg:crust bg:green)]($style)'
+style = "bg:yellow"
+format = '[[ $symbol( $version) ](fg:crust bg:yellow)]($style)'
 
 [kotlin]
 symbol = ""
-style = "bg:green"
-format = '[[ $symbol( $version) ](fg:crust bg:green)]($style)'
+style = "bg:yellow"
+format = '[[ $symbol( $version) ](fg:crust bg:yellow)]($style)'
 
 [haskell]
 symbol = ""
-style = "bg:green"
-format = '[[ $symbol( $version) ](fg:crust bg:green)]($style)'
+style = "bg:yellow"
+format = '[[ $symbol( $version) ](fg:crust bg:yellow)]($style)'
 
 [python]
 symbol = ""
-style = "bg:green"
-format = '[[ $symbol( $version)(\(#$virtualenv\)) ](fg:crust bg:green)]($style)'
+style = "bg:yellow"
+format = '[[ $symbol( $version)(\(#$virtualenv\)) ](fg:crust bg:yellow)]($style)'
 
 [ruby]
 symbol = ""
-style = "bg:green"
-format = '[[ $symbol( $version) ](fg:crust bg:green)]($style)'
+style = "bg:yellow"
+format = '[[ $symbol( $version) ](fg:crust bg:yellow)]($style)'
 
 [docker_context]
 symbol = ""
@@ -260,8 +260,8 @@ mauve = "#c6a0f6"
 red = "#ed8796"
 maroon = "#ee99a0"
 peach = "#f5a97f"
-yellow = "#eed49f"
-green = "#a6da95"
+yellow = "#f9e2af"  # brighter yellow from Mocha (orig Macchiato #eed49f)
+green = "#a6e3a1"   # brighter green from Mocha (orig Macchiato #a6da95)
 teal = "#8bd5ca"
 sky = "#91d7e3"
 sapphire = "#7dc4e4"
